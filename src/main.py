@@ -1,12 +1,11 @@
 import socket
-import threading
 import time
 from dataclasses import dataclass
 
 @dataclass
 class PeerNeighbour:
     id: int
-    port: int
+    port: int = 0
 @dataclass    
 class Peer:
     id: int
@@ -34,8 +33,8 @@ def send_message_to_neighbors(peer: Peer, peers: list[Peer], message: str, ttl: 
         return  
 
     neighbors = peer.neighbours
-    for neighbor_id in neighbors:
-        neighbor = peers[neighbor_id]
+    for neighbor in neighbors:
+        neighbor = peers[neighbor.id]
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
@@ -52,7 +51,7 @@ def main():
         peer_id = int(new_line[0].strip())
         neighbours = new_line[1].strip().split(',')
         peer = Peer(peer_id)
-        peer.neighbours = [int(i.strip()) for i in neighbours]
+        peer.neighbours = [PeerNeighbour(int(i.strip())) for i in neighbours]
         peers.append(peer)
     file.close()
     config = open("exemplo/config.txt", "r")
@@ -64,11 +63,13 @@ def main():
         peer.ip = data[0].strip()
         peer.porta = int(data[1].strip())
         peer.banda = int(data[2].strip())
+    for peer in peers:
+        for neighbour in peer.neighbours:
+            neighbour.port = peers[neighbour.id].porta
     config.close()
-
+    print(peers)
     time.sleep(1) 
     peer_zero = peers[0]
     send_message_to_neighbors(peer_zero, peers, "Buscando arquivo 'example.txt'", ttl=3)
-
 if __name__ == "__main__":
     main()
