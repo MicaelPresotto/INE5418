@@ -67,7 +67,6 @@ def main():
         for neighbour in peer.neighbours:
             neighbour.port = peers[neighbour.id].porta
     config.close()
-    print(peers)
     time.sleep(1) 
     peer_zero = peers[0]
     send_message_to_neighbors(peer_zero, peers, "Buscando arquivo 'example.txt'", ttl=3)
