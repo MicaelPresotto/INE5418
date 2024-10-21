@@ -13,21 +13,21 @@ class PeerNeighbour:
 class Peer:
     id: int
     ip: str = ""
-    porta: int = 0
-    banda: int = 0
+    port: int = 0
+    bandwidth: int = 0
     neighbours: list[PeerNeighbour] = field(default_factory=list)
 
 # def listen_udp(peer: Peer):
-#     """ Função para escutar mensagens UDP em um peer """
+#     """ Function to listen for UDP messages on a peer """
 #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#     sock.bind((peer.ip, peer.porta))
+#     sock.bind((peer.ip, peer.port))
 
 #     while True:
-#         data, addr = sock.recvfrom(1024)  # Recebe mensagens de até 1024 bytes
-#         print(f"Peer {peer.id} recebeu mensagem de {addr}: {data.decode()}")
+#         data, addr = sock.recvfrom(1024)  # Receive messages of up to 1024 bytes
+#         print(f"Peer {peer.id} received message from {addr}: {data.decode()}")
 
 def send_message_to_neighbors(peer: Peer, peers: list[Peer], message: str, ttl: int):
-    """ Função para enviar mensagem de descoberta para os vizinhos """
+    """ Function to send discovery message to neighbors """
     if ttl <= 0:
         return  
 
@@ -38,25 +38,25 @@ def send_message_to_neighbors(peer: Peer, peers: list[Peer], message: str, ttl: 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
         msg_with_ttl = f"{message} (TTL: {ttl})"
-        sock.sendto(msg_with_ttl.encode(), (neighbor.ip, neighbor.porta))
-        print(f"Peer {peer.id} enviou mensagem para Peer {neighbor.id}: {msg_with_ttl}")
+        sock.sendto(msg_with_ttl.encode(), (neighbor.ip, neighbor.port))
+        print(f"Peer {peer.id} sent message to Peer {neighbor.id}: {msg_with_ttl}")
         sock.close()
 
 def load_peer_from_json(peer_id: int, filename: str) -> Peer:
-    """ Carrega um peer específico de um arquivo JSON """
+    """ Load a specific peer from a JSON file """
     with open(filename, 'r') as json_file:
         peers_data = json.load(json_file)
         
     for peer_data in peers_data:
         if peer_data['id'] == peer_id:
             neighbours = [PeerNeighbour(id=neigh['id'], port=neigh['port']) for neigh in peer_data.get('neighbours', [])]
-            return Peer(id=peer_data['id'], ip=peer_data['ip'], porta=peer_data['porta'], banda=peer_data['banda'], neighbours=neighbours)
+            return Peer(id=peer_data['id'], ip=peer_data['ip'], port=peer_data['port'], bandwidth=peer_data['bandwidth'], neighbours=neighbours)
     
-    raise ValueError(f"Peer ID {peer_id} não encontrado no arquivo JSON.")
+    raise ValueError(f"Peer ID {peer_id} not found in the JSON file.")
 
 def main():
     if len(sys.argv) != 2:
-        print("Uso: python programa.py <peer_id>")
+        print("Usage: python program.py <peer_id>")
         sys.exit(1)
 
     peer_id = int(sys.argv[1])
@@ -69,7 +69,7 @@ def main():
         sys.exit(1)
 
     time.sleep(1) 
-    # send_message_to_neighbors(selected_peer, [selected_peer], "Buscando arquivo 'example.txt'", ttl=3)
+    # send_message_to_neighbors(selected_peer, [selected_peer], "Searching for file 'example.txt'", ttl=3)
 
 if __name__ == "__main__":
     main()
