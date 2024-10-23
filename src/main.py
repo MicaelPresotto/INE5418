@@ -5,6 +5,7 @@ import sys
 import threading
 from dataclasses import dataclass, field
 import json
+import os
 
 @dataclass
 class PeerNeighbour:
@@ -18,6 +19,26 @@ class Peer:
     port: int = 0
     bandwidth: int = 0
     neighbours: list[PeerNeighbour] = field(default_factory=list)
+
+import os
+
+def get_available_chunks(peer: Peer, file_name: str) -> list[int]:
+    peer_folder = f"exemplos/{peer.id}/"
+    
+    if not os.path.exists(peer_folder):
+        return []
+    
+    chunks = []
+    for file in os.listdir(peer_folder):
+        if file.startswith(file_name) and file.endswith('.ch'):
+            try:
+                chunk_number = int(file.split('.ch')[-1])
+                chunks.append(chunk_number)
+            except ValueError:
+                continue
+    
+    return chunks
+
 
 def udp_connection(peer: Peer):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,10 +68,18 @@ def receive_messages(sock, peer: Peer):
             if ttl > 0:
                 print(f"Peer {peer.id} received message from {addr}: {message['content']} with TTL {ttl}")
 
-                # Forward the message to all neighbors with decremented TTL
                 message["ttl"] -= 1
-                print(peer.neighbours)
+                peer_that_sent = message["peer_that_sent"]
+                message["peer_that_sent"] = peer.id
+                chunks_list = get_available_chunks(peer, message["file"])
+                if chunks_list:
+                    for chunk in chunks_list:
+                        send_chunk = {"content": "I have a chunk", "ttl": 1, "chunk": chunk}
+                        sock.sendto(json.dumps(send_chunk).encode(), (message["peer_that_wants_file"].ip, message["peer_that_wants_file"].port))
+
+                    
                 for neighbour in peer.neighbours:
+                    if(neighbour.id == peer_that_sent): continue
                     sock.sendto(json.dumps(message).encode(), (peer.ip, neighbour.port))
                     print(f"Peer {peer.id} sent message to neighbour {neighbour.id} on port {neighbour.port}")
             else:
@@ -61,9 +90,10 @@ def receive_messages(sock, peer: Peer):
 
 def send_message(sock, message: str, peer: Peer):
     for neighbour in peer.neighbours:
+        print(neighbour)
         try:
             file, chunks, ttl = read_p2p_file('../exemplo/image.png.p2p')
-            msg_with_ttl = {"content": message, "ttl": ttl, "peer_that_sent": peer.id, "file": file, "chunks": chunks} 
+            msg_with_ttl = {"content": message, "ttl": ttl, "peer_that_sent": peer.id, "file": file, "chunks": chunks, "peer_that_wants_file": peer} 
             sock.sendto(json.dumps(msg_with_ttl).encode(), (peer.ip, neighbour.port))
             print(f"Peer {peer.id} sent message to neighbour {neighbour.id} on port {neighbour.port}")
         except Exception as e:
