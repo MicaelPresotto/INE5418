@@ -3,7 +3,7 @@ import time
 import json
 import sys
 import threading
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 import os
 
 @dataclass
@@ -60,22 +60,28 @@ def receive_messages(sock, peer: Peer):
         try:
             data, addr = sock.recvfrom(peer.bandwidth)
             message = json.loads(data.decode())
-            if(message['port_that_wants_file'] == peer.port):
-                if message['chunk'] != -1:
-                    if not (message['chunk'] in chunks_found.keys()):
-                        chunks_found[message['chunk']] = [peer.ip, message['peer_that_sent_port'], message['peer_band_width']]
+            if(message['port_that_wants_file'] == peer.port) and 'chunks_list' in message.keys():
+                for chunk in message['chunks_list']:
+                    if not (chunk in chunks_found.keys()):
+                        chunks_found[chunk] = {'ip': peer.ip, 'port': message['peer_that_sent_port'], 'bandwidth': message['peer_band_width']}
+                    elif(chunks_found[chunk]['bandwidth'] < message['peer_band_width']):
+                        chunks_found.pop(chunk)
+                        chunks_found[chunk] = {'ip': peer.ip, 'port': message['peer_that_sent_port'], 'bandwidth': message['peer_band_width']}
+
             message["ttl"] -= 1
             ttl = message["ttl"]
-            chunks_list = get_available_chunks(peer, message["file"])
-            
-            if(message['port_that_wants_file'] == peer.port) and chunks_list:
-                for chunk in chunks_list:
-                    if not (chunk in chunks_found.keys()):
-                        chunks_found[chunk] = [peer.ip, peer.port]
+            chunks_list = get_available_chunks(peer, message["file"])            
 
             if chunks_list:
-                for chunk in chunks_list:
-                    send_chunk = {"content": "I have a chunk", "ttl": 1, "chunk": chunk, "port_that_wants_file": message['port_that_wants_file'], "peer_that_sent_port": peer.port, "file": message["file"], "peer_band_width": peer.bandwidth}
+                if(message['port_that_wants_file'] == peer.port):
+                    for chunk in chunks_list:
+                        if not (chunk in chunks_found.keys()):
+                            chunks_found[chunk] = {'ip': peer.ip, 'port': peer.port, 'bandwidth': peer.bandwidth}
+                        elif(chunks_found[chunk]['bandwidth'] < peer.bandwidth):
+                            chunks_found.pop(chunk)
+                            chunks_found[chunk] = {'ip': peer.ip, 'port': peer.port, 'bandwidth': peer.bandwidth}
+                else:
+                    send_chunk = {"content": "I have a chunk", "ttl": 1, "chunks_list": chunks_list, "port_that_wants_file": message['port_that_wants_file'], "peer_that_sent_port": peer.port, "file": message["file"], "peer_band_width": peer.bandwidth}
                     sock.sendto(json.dumps(send_chunk).encode(), (peer.ip, message["port_that_wants_file"]))
             if ttl > 0:
                 print(f"Peer {peer.id} received message from {addr}: {message['content']} with TTL {ttl}")
@@ -89,9 +95,8 @@ def receive_messages(sock, peer: Peer):
                     sock.sendto(json.dumps(message).encode(), (peer.ip, neighbour.port))
                     print(f"Peer {peer.id} sent message to neighbour {neighbour.id} on port {neighbour.port}")
             else:
-                print(f"{peer.id} -> {chunks_found}")
+                print(chunks_found)
                 print(f"Peer {peer.id} dropped message with TTL expired from {addr}")
-
         except Exception as e:
             print(f"Error receiving message: {e}")
 
@@ -107,7 +112,6 @@ def send_message(sock, message: str, peer: Peer):
                               "file": file, 
                               "chunks": chunks, 
                               "port_that_wants_file": peer.port,
-                              "chunk": -1
                               } 
             sock.sendto(json.dumps(msg_with_ttl).encode(), (peer.ip, neighbour.port))
             print(f"Peer {peer.id} sent message to neighbour {neighbour.id} on port {neighbour.port}")
