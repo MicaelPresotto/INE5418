@@ -49,12 +49,7 @@ class P2PNetwork:
         while True:
             # Simulate sending messages at any time (for demo purposes)
             message = input()
-            self.reset_attributes()
             self.send_message(sock, message, peer)
-    def reset_attributes(self):
-        self.chunks_found = {}
-        self.received_chunks = {}
-        self.reconstructed_file = False
 
     def receive_messages(self, sock, peer: Peer):
         while True:
@@ -83,7 +78,7 @@ class P2PNetwork:
                             if chunk not in self.chunks_found.keys():
                                 self.chunks_found[chunk] = {'ip': peer.ip, 'port': peer.port, 'bandwidth': peer.bandwidth, 'chunk_size': chunk_size}
                                 self.received_chunks[chunk] = True
-                            elif self.chunks_found[chunk]['bandwidth'] < peer.bandwidth and self.chunks_found[chunk]['port'] != peer.port:
+                            else:
                                 self.chunks_found.pop(chunk)
                                 self.chunks_found[chunk] = {'ip': peer.ip, 'port': peer.port, 'bandwidth': peer.bandwidth, 'chunk_size': chunk_size}
                     else:
@@ -103,9 +98,14 @@ class P2PNetwork:
                         print(f"Peer {peer.id} sent message to neighbour {neighbour.id} on port {neighbour.port}")
                 else:
                     print(f"Peer {peer.id} dropped message with TTL expired from {addr}")
+                    for i in os.listdir(f"../exemplo/{peer.id}/"):
+                        if(message['file'] != i):
+                            self.reconstructed_file = False
+                        else:
+                            self.reconstructed_file = True
                     if message["port_that_wants_file"] == peer.port:
                         self.download_chunks(peer)
-                        if(len(self.chunks_found) == len(self.received_chunks) and not self.reconstructed_file):
+                        if(not self.reconstructed_file):
                             if(self.reconstruct_file(peer.id, message["file"], message["chunks"])):
                                 self.reconstructed_file = True
             except Exception as e:
@@ -179,7 +179,7 @@ class P2PNetwork:
 
     def download_chunks(self, peer: Peer):
         for chunk, info in self.chunks_found.items():
-            if chunk in self.received_chunks.keys():
+            if chunk in self.received_chunks.keys() or info["port"] == peer.port:
                 continue
             self.request_chunk(peer, {"ip": info["ip"], "port": info["port"], "chunk": chunk, "bandwidth": info["bandwidth"], "chunk_size": info["chunk_size"]})
 
