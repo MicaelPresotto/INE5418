@@ -1,42 +1,82 @@
 [
-    {
-        "id": 0,
-        "ip": "127.0.0.1",
-        "port": 6000,
-        "bandwidth": 200,
-        "neighbours": [
-            {
-                "id": 1,
-                "port": 6001
-            },
-            {
-                "id": 2,
-                "port": 6002
-            }
-        ]
-    },
-    {
+  {
+    "id": 0,
+    "ip": "127.0.0.1",
+    "port": 6000,
+    "bandwidth": 200,
+    "neighbours": [
+      {
         "id": 1,
-        "ip": "127.0.0.1",
-        "port": 6001,
-        "bandwidth": 200,
-        "neighbours": [
-            {
-                "id": 0,
-                "port": 6000
-            }
-        ]
-    },
-    {
+        "port": 6001
+      },
+      {
+        "id": 4,
+        "port": 6004
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "ip": "127.0.0.1",
+    "port": 6001,
+    "bandwidth": 200,
+    "neighbours": [
+      {
+        "id": 0,
+        "port": 6000
+      },
+      {
         "id": 2,
-        "ip": "127.0.0.1",
-        "port": 6002,
-        "bandwidth": 200,
-        "neighbours": [
-            {
-                "id": 1,
-                "port": 6001
-            }
-        ]
-    }
+        "port": 6002
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "ip": "127.0.0.1",
+    "port": 6002,
+    "bandwidth": 200,
+    "neighbours": [
+      {
+        "id": 1,
+        "port": 6001
+      },
+      {
+        "id": 3,
+        "port": 6003
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "ip": "127.0.0.1",
+    "port": 6003,
+    "bandwidth": 200,
+    "neighbours": [
+      {
+        "id": 2,
+        "port": 6002
+      },
+      {
+        "id": 4,
+        "port": 6004
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "ip": "127.0.0.1",
+    "port": 6004,
+    "bandwidth": 200,
+    "neighbours": [
+      {
+        "id": 3,
+        "port": 6003
+      },
+      {
+        "id": 0,
+        "port": 6000
+      }
+    ]
+  }
 ]
