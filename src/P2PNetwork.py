@@ -105,7 +105,7 @@ class P2PNetwork:
                             self.reconstructed_file = True
                     if message["port_that_wants_file"] == peer.port:
                         self.download_chunks(peer)
-                        if(not self.reconstructed_file):
+                        if(not self.reconstructed_file and message['chunks'] == len(self.chunks_found)):
                             if(self.reconstruct_file(peer.id, message["file"], message["chunks"])):
                                 self.reconstructed_file = True
             except Exception as e:
