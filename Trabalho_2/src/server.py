@@ -72,7 +72,7 @@ class Server:
                 request = request_data
                 self.process_request(client_socket, request)
         except Exception as e:
-            print(f"Erro ao processar cliente: {e}")
+            print(f"Error processing client: {e}")
         finally:
             client_socket.close()
 
@@ -81,7 +81,7 @@ def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", 9001))
     server_socket.listen(5)
-    print("Servidor iniciado na porta 9001...")
+    print("Server started on port 9001...")
 
     while True:
         client_socket, _ = server_socket.accept()

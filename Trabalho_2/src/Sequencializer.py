@@ -12,13 +12,13 @@ def sequencer_server(replicas):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(("127.0.0.1", 9000))
     server.listen(1)
-    print("Sequenciador iniciado...")
+    print("Sequencializer started")
 
     while True:
         conn, _ = server.accept()
         with conn:
             message = json.loads(conn.recv(1024).decode())
-            print(f"Sequenciador recebeu: {message}")
+            print(f"Sequencializer received: {message}")
             atomic_broadcast(message, replicas)
 
 replicas = [("127.0.0.1", 9001), ("127.0.0.1", 9002)]
