@@ -1,55 +1,91 @@
 import socket
 import threading
+from Item import Item
+import json
 
-# Banco de dados simples: key-value com versão
-database = {
-    "item1": {"value": 10, "version": 1},
-    "item2": {"value": 20, "version": 1},
-}
+class Server:
+    def __init__(self):
+        self.database = [
+            Item(id=1, name="x", value=0, version=0),
+            Item(id=2, name="y", value=0, version=0),
+        ]
+        self.last_committed = 0
 
-def handle_client(client_socket):
-    while True:
-        message = client_socket.recv(1024).decode()
-        if not message:
-            break
-        
-        if message.startswith("READ"):
-            key = message.split()[1]
-            if key in database:
-                response = f"VALUE {key} {database[key]['value']} {database[key]['version']}"
+    def get_item(self, item_name):
+        for item in self.database:
+            if item.name == item_name:
+                return item
+        return None
+
+    def process_request(self, client_socket, request):
+        request_type = request["type"]
+
+        if request_type == "read":
+            item_name = request["item"]
+            item = self.get_item(item_name)
+            if item:
+                response = {"status": "success", "value": item.value, "version": item.version}
             else:
-                response = f"ERROR Key {key} not found"
-            client_socket.send(response.encode())
+                response = {"status": "error", "message": "Item not found"}
+            client_socket.sendall(json.dumps(response).encode())
 
-        elif message.startswith("COMMIT"):
-            rs, ws = eval(message.split(" ", 1)[1])  # Recebe rs e ws
-            valid = True
-            for item in rs:
-                key, _, version = item
-                if database[key]["version"] != version:
-                    valid = False
+        elif request_type == "commit":
+            read_set = request["read_set"]
+            write_set = request["write_set"]
+            abort = False
+
+            # Certification test
+            for read_item in read_set:
+                item_name = read_item["item"]
+                client_version = read_item["version"]
+                item = self.get_item(item_name)
+                if not item or item.version > client_version:
+                    response = {"status": "abort"}
+                    client_socket.sendall(json.dumps(response).encode())
+                    abort = True
                     break
 
-            if valid:
-                for item in ws:
-                    key, value = item
-                    database[key]["value"] = value
-                    database[key]["version"] += 1
-                client_socket.send("COMMITTED".encode())
-            else:
-                client_socket.send("ABORTED".encode())
-    client_socket.close()
+            if not abort:
+                self.last_committed += 1
 
-# Inicialização do servidor
+                # Apply write operations
+                for write_item in write_set:
+                    item_name = write_item["item"]
+                    value = write_item["value"]
+                    item = self.get_item(item_name)
+                    if item:
+                        item.version = self.last_committed
+                        item.value = value
+
+                # Confirm the commit
+                response = {"status": "commit"}
+                client_socket.sendall(json.dumps(response).encode())
+
+    def handle_client(self, client_socket):
+        try:
+            while True:
+                # Receive data from the client
+                request_data = json.loads(client_socket.recv(1024).decode())
+                if not request_data:
+                    break
+
+                request = request_data
+                self.process_request(client_socket, request)
+        except Exception as e:
+            print(f"Erro ao processar cliente: {e}")
+        finally:
+            client_socket.close()
+
 def start_server():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(("0.0.0.0", 8080))
-    server.listen(5)
-    print("Servidor iniciado na porta 8080...")
+    server_instance = Server()
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("127.0.0.1", 9001))
+    server_socket.listen(5)
+    print("Servidor iniciado na porta 9001...")
 
     while True:
-        client_socket, _ = server.accept()
-        thread = threading.Thread(target=handle_client, args=(client_socket,))
+        client_socket, _ = server_socket.accept()
+        thread = threading.Thread(target=server_instance.handle_client, args=(client_socket,))
         thread.start()
 
 start_server()

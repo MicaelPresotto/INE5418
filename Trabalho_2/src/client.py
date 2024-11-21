@@ -1,33 +1,73 @@
 import socket
+import random
+from Transaction import Transaction
+import json
 
-# Initial commit, I'm in doubt about who communicates with whom, idk if they communicate with de sequencer or with the server
-# I had assumed that the client communicates with the server, but I'm not sure
-# Probably the client communicates with the server, and the server communicates with the sequencer
-# The sequencer communicates with the replicas, to broadcast the message
-def start_client():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(("127.0.0.1", 8080))
+replica_servers = [("127.0.0.1", 9001)]
+sequencializer = ("127.0.0.1", 9000)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.bind(("127.0.0.1", 8000))
 
-    # Conjunto de leitura e escrita
-    rs = []
-    ws = []
 
-    # Realiza uma leitura
-    client.send("READ item1".encode())
-    response = client.recv(1024).decode()
-    if response.startswith("VALUE"):
-        _, key, value, version = response.split()
-        rs.append((key, int(value), int(version)))
-        print(f"Lido: {key} = {value}, versão {version}")
+def T(client_id, transaction: Transaction):
+    write_set = set()
+    read_set = set()
+    i = 0
 
-    # Adiciona uma escrita
-    ws.append(("item1", 30))
+    # Randomly choose one of the replica servers
+    s = random.choice(replica_servers)
 
-    # Tenta confirmar a transação
-    client.send(f"COMMIT {str((rs, ws))}".encode())
-    response = client.recv(1024).decode()
-    print(f"Resultado da transação: {response}")
+    while transaction.get_op(i) != "commit" and transaction.get_op(i) != "abort":
+        if transaction.get_op(i) == "write":
+            write_set.add((transaction.get_item(i), transaction.get_value(i)))
 
-    client.close()
+        elif transaction.get_op(i) == "read":
+            # Check if the item is in the write set
+            if transaction.get_item(i) in {item for item, _ in write_set}:
+                return next(value for item, value in write_set if item == transaction.get_item(i))
+            else:
+                # Send the read request to the replica server
+                client.connect(s)
+                message = {
+                    "com_req": "read",
+                    "client_id": client_id,
+                    "transaction_id": transaction.id,
+                    "item": transaction.get_item(i)
+                }
+                client.sendall(message.encode())
+                response = json.loads(client.recv(1024).decode())
+                if response["status"] == "error":
+                    print([response["message"]])
+                else:            
+                    value, version = response.split()[1:]
+                    read_set.add((transaction.get_item(i), value, version))
+                client.close()
 
-start_client()
+        i += 1
+
+    if transaction.get_op(i) == "commit":
+        client.connect(sequencializer)
+        message = {
+            "com_req": "commit",
+            "client_id": client_id,
+            "transaction_id": transaction.id,
+            "read_set": read_set,
+            "write_set": write_set
+        }
+        client.sendall(message.encode())
+        outcome = json.loads(client.recv(1024).decode())
+        transaction.result = outcome['status']
+        client.close()
+    else:
+        transaction.result = "abort"
+
+transaction = Transaction(
+    operations=["write", "read", "commit"],
+    items=["x", "y"],
+    values=[42, None],
+    transaction_id="T1"
+)
+
+client_id = "client1"
+
+T(client_id, transaction)
