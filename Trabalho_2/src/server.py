@@ -1,5 +1,3 @@
-import socket
-import threading
 from Item import Item
 import json
 
@@ -27,6 +25,7 @@ class Server:
                 response = {"status": "success", "value": item.value, "version": item.version}
             else:
                 response = {"status": "error", "message": "Item not found"}
+            print(f"Sending response: {response}")
             client_socket.sendall(json.dumps(response).encode())
 
         elif request_type == "commit":
@@ -36,12 +35,20 @@ class Server:
 
             # Certification test
             for read_item in read_set:
-                item_name = read_item["item"]
-                client_version = read_item["version"]
+                item_name = read_item[0]
+                client_version = read_item[2]
+                if client_version == "local":
+                    continue
+                client_version = int(client_version)
                 item = self.get_item(item_name)
                 if not item or item.version > client_version:
+                    print(f"Certification test failed for item {item_name}")
                     response = {"status": "abort"}
-                    client_socket.sendall(json.dumps(response).encode())
+                    print(f"Sending response: {response}")
+                    try:
+                        client_socket.sendall(json.dumps(response).encode())
+                    except Exception as e:
+                        print(f"Error sending response: {e}")
                     abort = True
                     break
 
@@ -50,8 +57,8 @@ class Server:
 
                 # Apply write operations
                 for write_item in write_set:
-                    item_name = write_item["item"]
-                    value = write_item["value"]
+                    item_name = write_item[0]
+                    value = write_item[1]
                     item = self.get_item(item_name)
                     if item:
                         item.version = self.last_committed
@@ -59,33 +66,26 @@ class Server:
 
                 # Confirm the commit
                 response = {"status": "commit"}
+                print(f"Sending response: {response}")
                 client_socket.sendall(json.dumps(response).encode())
+                print("New database state:", self.database)
 
     def handle_client(self, client_socket):
         try:
             while True:
-                # Receive data from the client
-                request_data = json.loads(client_socket.recv(1024).decode())
-                if not request_data:
+                raw_data = client_socket.recv(1024).decode().strip()
+                if not raw_data:
+                    print("Client disconnected.")
                     break
-
-                request = request_data
-                self.process_request(client_socket, request)
+                print("Data received: ", raw_data)
+                request_data = json.loads(raw_data)
+                self.process_request(client_socket, request_data)
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}, raw data: '{raw_data}'")
         except Exception as e:
             print(f"Error processing client: {e}")
         finally:
+            print("Closing client connection.")
             client_socket.close()
 
-def start_server():
-    server_instance = Server()
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("127.0.0.1", 9001))
-    server_socket.listen(5)
-    print("Server started on port 9001...")
 
-    while True:
-        client_socket, _ = server_socket.accept()
-        thread = threading.Thread(target=server_instance.handle_client, args=(client_socket,))
-        thread.start()
-
-start_server()
