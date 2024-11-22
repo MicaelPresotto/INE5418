@@ -24,8 +24,8 @@ def atomic_broadcast(message, replicas):
 def sequencer_server(replicas):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(("127.0.0.1", 9000))
-    server.listen(1)
-    print("Sequencializer started")
+    server.listen(1) #TODO: Probably, this is not the correct way to do it, we need to look for a better way to handle multiple clients
+    print("Sequencializer started...")
 
     while True:
         conn, _ = server.accept()

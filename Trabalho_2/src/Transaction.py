@@ -1,10 +1,10 @@
 class Transaction:
     def __init__(self, operations, items, values, transaction_id):
         """
-        :param operations: Lista de operações (e.g., ["write", "read", "commit"]).
-        :param items: Lista de itens associados às operações (e.g., ["x", "y"]).
-        :param values: Lista de valores (apenas para operações de escrita).
-        :param transaction_id: ID da transação.
+        :param operations: List of operations (e.g., ["write", "read", "commit"]).
+        :param items: List of items associated with the operations (e.g., ["x", "y"]).
+        :param values: List of values (only for write operations).
+        :param transaction_id: Transaction ID.
         """
         self.operations = operations
         self.items = items
@@ -13,19 +13,19 @@ class Transaction:
         self.result = None
 
     def get_op(self, i):
-        """Obtém a operação no índice i."""
+        """Gets the operation at index i."""
         if i < len(self.operations):
             return self.operations[i]
         return None
 
     def get_item(self, i):
-        """Obtém o item associado à operação no índice i."""
+        """Gets the item associated with the operation at index i."""
         if i < len(self.items):
             return self.items[i]
         return None
 
     def get_value(self, i):
-        """Obtém o valor associado à operação no índice i (somente para 'write')."""
+        """Gets the value associated with the operation at index i (only for 'write')."""
         if i < len(self.values):
             return self.values[i]
         return None
