@@ -2,7 +2,7 @@ import socket
 import random
 import json
 from Transaction import Transaction
-
+from time import sleep
 
 class Client:
     def __init__(self, client_id, sequencializer, replica_servers):
@@ -50,7 +50,7 @@ class Client:
                             value, version = response["value"], response["version"]
                             read_set.add((item, value, version))
 
-
+            sleep(transaction.sleep_time)
             i += 1
 
         if transaction.get_op(i) == "commit":

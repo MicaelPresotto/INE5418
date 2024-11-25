@@ -1,5 +1,5 @@
 class Transaction:
-    def __init__(self, operations, items, values, transaction_id):
+    def __init__(self, operations, items, values, sleep_time, transaction_id):
         """
         :param operations: List of operations (e.g., ["write", "read", "commit"]).
         :param items: List of items associated with the operations (e.g., ["x", "y"]).
@@ -11,6 +11,7 @@ class Transaction:
         self.values = values
         self.id = transaction_id
         self.result = None
+        self.sleep_time = sleep_time
 
     def get_op(self, i):
         """Gets the operation at index i."""
