@@ -9,9 +9,15 @@ def start_server():
     server_socket.listen(5)
     print("Server started on port 9001...")
 
-    while True:
-        client_socket, _ = server_socket.accept()
-        thread = threading.Thread(target=server_instance.handle_client, args=(client_socket,))
-        thread.start()
+    try:
+        while True:
+            client_socket, _ = server_socket.accept()
+            thread = threading.Thread(target=server_instance.handle_client, args=(client_socket,))
+            thread.start()
+    except KeyboardInterrupt:
+        print("\nServer is shutting down...")
+    finally:
+        server_socket.close()
+        print("Server socket closed.")
 
 start_server()

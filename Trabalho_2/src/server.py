@@ -8,6 +8,8 @@ class Server:
             Item(id=2, name="y", value=0, version=0),
         ]
         self.last_committed = 0
+        self.message_queue = dict()
+        self.sequence_numbers_received = [0]
 
     def get_item(self, item_name):
         for item in self.database:
@@ -29,46 +31,74 @@ class Server:
             client_socket.sendall(json.dumps(response).encode())
 
         elif request_type == "commit":
-            read_set = request["read_set"]
-            write_set = request["write_set"]
-            abort = False
-
-            # Certification test
-            for read_item in read_set:
-                item_name = read_item[0]
-                client_version = read_item[2]
-                if client_version == "local":
-                    continue
-                client_version = int(client_version)
-                item = self.get_item(item_name)
-                if not item or item.version > client_version:
-                    print(f"Certification test failed for item {item_name}")
-                    response = {"status": "abort"}
-                    print(f"Sending response: {response}")
-                    try:
-                        client_socket.sendall(json.dumps(response).encode())
-                    except Exception as e:
-                        print(f"Error sending response: {e}")
-                    abort = True
-                    break
-
-            if not abort:
-                self.last_committed += 1
-
-                # Apply write operations
-                for write_item in write_set:
-                    item_name = write_item[0]
-                    value = write_item[1]
-                    item = self.get_item(item_name)
-                    if item:
-                        item.version = self.last_committed
-                        item.value = value
-
-                # Confirm the commit
-                response = {"status": "commit"}
+            sequence_number = request.get("sequence_number")
+            if sequence_number is None:
+                response = {"status": "error", "message": "Sequence number missing"}
                 print(f"Sending response: {response}")
                 client_socket.sendall(json.dumps(response).encode())
-                print("New database state:", self.database)
+                return
+
+            if sequence_number > self.sequence_numbers_received[-1] + 1:
+                print(f"Sequence {sequence_number} out of order. Expected {self.sequence_numbers_received[-1] + 1}. Storing in queue.")
+                self.message_queue[sequence_number].append((client_socket, request))
+            elif sequence_number < self.sequence_numbers_received[-1] + 1:
+                print(f"Sequence {sequence_number} already processed. Ignoring.")
+                return
+
+            self.sequence_numbers_received.append(sequence_number)
+            self._process_commit_request(client_socket, request)
+
+            self.message_queue = dict(sorted(self.message_queue.items()))
+            self._process_buffered_requests()
+
+    def _process_commit_request(self, client_socket, request):
+        read_set = request["read_set"]
+        write_set = request["write_set"]
+        abort = False
+
+        # Certification Test
+        for read_item in read_set:
+            item_name = read_item[0]
+            client_version = read_item[2]
+            if client_version == "local":
+                continue
+            client_version = int(client_version)
+            item = self.get_item(item_name)
+            if not item or item.version > client_version:
+                print(f"Certification test failed for item {item_name}")
+                response = {"status": "abort"}
+                print(f"Sending response: {response}")
+                try:
+                    client_socket.sendall(json.dumps(response).encode())
+                except Exception as e:
+                    print(f"Error sending response: {e}")
+                abort = True
+                break
+
+        if not abort:
+            self.last_committed += 1
+
+            for write_item in write_set:
+                item_name = write_item[0]
+                value = write_item[1]
+                item = self.get_item(item_name)
+                if item:
+                    item.version = self.last_committed
+                    item.value = value
+
+            # Confirm commit
+            response = {"status": "commit"}
+            print(f"Sending response: {response}")
+            client_socket.sendall(json.dumps(response).encode())
+            print("New database state:", self.database)
+
+    def _process_buffered_requests(self):
+        for i in self.message_queue.keys():
+            if i in self.sequence_numbers_received:
+                next_requests = self.message_queue.pop(self.last_committed + 1)
+                for client_socket, request in next_requests:
+                    self._process_commit_request(client_socket, request)
+
 
     def handle_client(self, client_socket):
         try:

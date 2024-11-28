@@ -21,7 +21,7 @@ def execute_transaction(client_id, operations, items, values, sleep_time, transa
 
 thread_1 = threading.Thread(
     target=execute_transaction,
-    args=("client1", ["read", "write", "commit"], ["x", "x"], [None, 42], 4,"T1")
+    args=("client1", ["read", "write", "commit"], ["x", "x"], [None, 42], 2,"T1")
 )
 
 thread_2 = threading.Thread(
