@@ -1,4 +1,4 @@
-from Item import Item
+from Utils.Item import Item
 import json
 
 class Server:

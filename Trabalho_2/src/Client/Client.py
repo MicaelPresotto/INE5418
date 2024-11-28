@@ -1,7 +1,7 @@
 import socket
 import random
 import json
-from Transaction import Transaction
+from Utils.Transaction import Transaction
 from time import sleep
 
 class Client:

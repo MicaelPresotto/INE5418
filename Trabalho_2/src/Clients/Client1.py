@@ -1,6 +1,6 @@
 import threading
-from Client import Client
-from Transaction import Transaction
+from Client.Client import Client
+from Utils.Transaction import Transaction
 
 # Configuração do sistema
 replica_servers = [("127.0.0.1", 9001), ("127.0.0.1", 9002)]
@@ -26,7 +26,7 @@ thread_1 = threading.Thread(
 
 thread_2 = threading.Thread(
     target=execute_transaction,
-    args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 2, "T2")
+    args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 4, "T2")
 )
 
 # Iniciar threads
