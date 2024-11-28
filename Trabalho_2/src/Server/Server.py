@@ -46,6 +46,7 @@ class Server:
             if sequence_number > self.sequence_numbers_received[-1] + 1:
                 print(f"Sequence {sequence_number} out of order. Expected {self.sequence_numbers_received[-1] + 1}. Storing in queue.")
                 self.message_queue[sequence_number].append((client_socket, request))
+                return
             elif sequence_number < self.sequence_numbers_received[-1] + 1:
                 print(f"Sequence {sequence_number} already processed. Ignoring.")
                 return
