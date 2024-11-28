@@ -10,9 +10,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Utils.Transaction import Transaction
 
 class Client:
-    def __init__(self, client_id, sequencializer, replica_servers):
+    def __init__(self, client_id, sequencer, replica_servers):
         self.client_id = client_id
-        self.sequencializer = sequencializer
+        self.sequencer = sequencer
         self.replica_servers = replica_servers
 
     def execute_transaction(self, transaction: Transaction):
@@ -67,7 +67,7 @@ class Client:
 
     def _commit_transaction(self, transaction, read_set, write_set):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-            client.connect(self.sequencializer)
+            client.connect(self.sequencer)
             message = {
                 "type": "commit",
                 "client_id": self.client_id,

@@ -8,11 +8,11 @@ from Utils.Transaction import Transaction
 
 # Configuração do sistema
 replica_servers = [("127.0.0.1", 9001), ("127.0.0.1", 9002)]
-sequencializer = ("127.0.0.1", 9000)
+sequencer = ("127.0.0.1", 9000)
 
 # Função para executar uma transação
 def execute_transaction(client_id, operations, items, values, sleep_time, transaction_id):
-    client = Client(client_id=client_id, sequencializer=sequencializer, replica_servers=replica_servers)
+    client = Client(client_id=client_id, sequencer=sequencer, replica_servers=replica_servers)
     transaction = Transaction(
         operations=operations,
         items=items,
