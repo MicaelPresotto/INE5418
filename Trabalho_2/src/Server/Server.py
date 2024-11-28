@@ -1,5 +1,10 @@
-from Utils.Item import Item
 import json
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from Utils.Item import Item
 
 class Server:
     def __init__(self):

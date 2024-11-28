@@ -1,8 +1,13 @@
 import socket
 import random
 import json
-from Utils.Transaction import Transaction
 from time import sleep
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from Utils.Transaction import Transaction
 
 class Client:
     def __init__(self, client_id, sequencializer, replica_servers):
@@ -20,6 +25,8 @@ class Client:
 
         while transaction.get_op(i) not in ["commit", "abort"]:
             operation = transaction.get_op(i)
+            if operation is None:
+                return
             item = transaction.get_item(i)
             value = transaction.get_value(i)
             print(f"Operation: {operation}, Item: {item}, Value: {value}")

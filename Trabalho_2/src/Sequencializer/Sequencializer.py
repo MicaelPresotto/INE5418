@@ -2,7 +2,6 @@ import socket
 import threading
 import json
 
-
 class Sequencer:
     def __init__(self, host, port, replicas):
         self.host = host

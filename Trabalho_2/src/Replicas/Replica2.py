@@ -1,6 +1,11 @@
-from Server import Server
 import socket
 import threading
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Server.Server import Server
+
 def start_server():
     server_instance = Server()
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -1,4 +1,8 @@
 import threading
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Client.Client import Client
 from Utils.Transaction import Transaction
 
@@ -19,20 +23,25 @@ def execute_transaction(client_id, operations, items, values, sleep_time, transa
     client.execute_transaction(transaction)
     print(f"Client {client_id}: Transaction {transaction_id} result: {transaction.result}")
 
-thread_1 = threading.Thread(
-    target=execute_transaction,
-    args=("client1", ["read", "write", "commit"], ["x", "x"], [None, 42], 2,"T1")
+threads = (
+    threading.Thread(
+        target=execute_transaction,
+        args=("client1", ["read", "write", "commit"], ["x", "x"], [None, 42], 2,"T1")
+    ),
+    threading.Thread(
+        target=execute_transaction,
+        args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 4, "T2")
+    ),
+    threading.Thread(
+        target=execute_transaction,
+        args=("client3", ["read", "commit"], ["y"], [None], 3, "T3")
+    ),
+
 )
 
-thread_2 = threading.Thread(
-    target=execute_transaction,
-    args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 4, "T2")
-)
+for thread in threads:
+    thread.start()
 
-# Iniciar threads
-thread_1.start()
-thread_2.start()
+for thread in threads:
+    thread.join()
 
-# Aguardar finalização
-thread_1.join()
-thread_2.join()
