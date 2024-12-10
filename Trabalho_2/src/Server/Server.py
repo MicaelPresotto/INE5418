@@ -14,7 +14,7 @@ class Server:
         ]
         self.last_committed = 0
         self.message_queue = dict()
-        self.sequence_numbers_received = [0]
+        self.sequence_numbers_received = 0
 
     def get_item(self, item_name):
         for item in self.database:
@@ -43,15 +43,15 @@ class Server:
                 client_socket.sendall(json.dumps(response).encode())
                 return
 
-            if sequence_number > self.sequence_numbers_received[-1] + 1:
-                print(f"Sequence {sequence_number} out of order. Expected {self.sequence_numbers_received[-1] + 1}. Storing in queue.")
+            if sequence_number > self.sequence_numbers_received + 1:
+                print(f"Sequence {sequence_number} out of order. Expected {self.sequence_numbers_received + 1}. Storing in queue.")
                 self.message_queue[sequence_number].append((client_socket, request))
                 return
-            elif sequence_number < self.sequence_numbers_received[-1] + 1:
+            elif sequence_number < self.sequence_numbers_received + 1:
                 print(f"Sequence {sequence_number} already processed. Ignoring.")
                 return
 
-            self.sequence_numbers_received.append(sequence_number)
+            self.sequence_numbers_received+=1
             self._process_commit_request(client_socket, request)
 
             self.message_queue = dict(sorted(self.message_queue.items()))
@@ -89,7 +89,7 @@ class Server:
                 value = write_item[1]
                 item = self.get_item(item_name)
                 if item:
-                    item.version = self.last_committed
+                    item.version = item.version + 1
                     item.value = value
 
             # Confirm commit
@@ -100,10 +100,11 @@ class Server:
 
     def _process_buffered_requests(self):
         for i in self.message_queue.keys():
-            if i in self.sequence_numbers_received:
-                next_requests = self.message_queue.pop(self.last_committed + 1)
-                for client_socket, request in next_requests:
-                    self._process_commit_request(client_socket, request)
+            if i == self.sequence_numbers_received + 1:
+                for sequence_number, requests in self.message_queue.items():
+                    self._process_commit_request(requests[0], requests[1])
+                    self.sequence_numbers_received+=1
+                    del self.message_queue[sequence_number]
 
 
     def handle_client(self, client_socket):

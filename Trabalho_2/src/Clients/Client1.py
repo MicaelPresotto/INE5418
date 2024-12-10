@@ -30,11 +30,11 @@ threads = (
     ),
     threading.Thread(
         target=execute_transaction,
-        args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 4, "T2")
+        args=("client2", ["read", "write", "commit"], ["x", "x"], [None, 99], 1, "T2")
     ),
     threading.Thread(
         target=execute_transaction,
-        args=("client3", ["read", "commit"], ["y"], [None], 3, "T3")
+        args=("client3", ["read", "commit"], ["y"], [None], 1, "T3")
     ),
 
 )

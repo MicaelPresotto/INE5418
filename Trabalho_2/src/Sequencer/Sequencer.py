@@ -17,14 +17,14 @@ class Sequencer:
         self.server.listen(5)
         print(f"Sequencer started on {self.host}:{self.port}")
 
-        threading.Thread(target=self._listen_for_clients, daemon=True).start()
+        threading.Thread(target=self._listen_for_clients).start()
 
     def _listen_for_clients(self):
         """Waits for client connections and processes their requests."""
         while True:
             conn, addr = self.server.accept()
             print(f"Connection from {addr}")
-            threading.Thread(target=self._handle_client, args=(conn,), daemon=True).start()
+            threading.Thread(target=self._handle_client, args=(conn,)).start()
 
     def _handle_client(self, conn):
         """Processes messages from clients."""
@@ -72,7 +72,7 @@ class Sequencer:
             except Exception as e:
                 print(f"Error communicating with replica {replica}: {e}")
                 responses.append({"status": "error"})
-
+        print(f"Responses from replicas: {responses}")
         return responses
 
 
